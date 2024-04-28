@@ -1,4 +1,3 @@
-@@ -0,0 +1,5 @@
 config MI_HARDWARE_ID
 	tristate "Register xiaomi hwid module"
 	default n
