@@ -1,4 +1,3 @@
-@@ -0,0 +1,201 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * HwId Module driver for mi driver acquire some hwid build info,
