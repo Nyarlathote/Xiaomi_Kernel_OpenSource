@@ -110,7 +110,7 @@ static u64 irqtime_tick_accounted(u64 dummy)
 
 #endif /* !CONFIG_IRQ_TIME_ACCOUNTING */
 
-static inline void task_group_account_field(struct task_struct *p, int index,
+static inline void task_account_field(struct task_struct *p, int index,
 					    u64 tmp)
 {
 	/*
@@ -135,12 +135,12 @@ void account_user_time(struct task_struct *p, u64 cputime)
 
 	/* Add user time to process. */
 	p->utime += cputime;
-	account_group_user_time(p, cputime);
+	account_user_time(p, cputime);
 
 	index = (task_nice(p) > 0) ? CPUTIME_NICE : CPUTIME_USER;
 
 	/* Add user time to cpustat. */
-	task_group_account_field(p, index, cputime);
+	task_account_field(p, index, cputime);
 
 	/* Account for user time used */
 	acct_account_cputime(p);
@@ -160,15 +160,15 @@ void account_guest_time(struct task_struct *p, u64 cputime)
 
 	/* Add guest time to process. */
 	p->utime += cputime;
-	account_group_user_time(p, cputime);
+	account_user_time(p, cputime);
 	p->gtime += cputime;
 
 	/* Add guest time to cpustat. */
 	if (task_nice(p) > 0) {
-		task_group_account_field(p, CPUTIME_NICE, cputime);
+		task_account_field(p, CPUTIME_NICE, cputime);
 		cpustat[CPUTIME_GUEST_NICE] += cputime;
 	} else {
-		task_group_account_field(p, CPUTIME_USER, cputime);
+		task_account_field(p, CPUTIME_USER, cputime);
 		cpustat[CPUTIME_GUEST] += cputime;
 	}
 }
@@ -184,10 +184,10 @@ void account_system_index_time(struct task_struct *p,
 {
 	/* Add system time to process. */
 	p->stime += cputime;
-	account_group_system_time(p, cputime);
+	account_system_time(p, cputime);
 
 	/* Add system time to cpustat. */
-	task_group_account_field(p, index, cputime);
+	task_account_field(p, index, cputime);
 
 	/* Account for system time used */
 	acct_account_cputime(p);
@@ -311,7 +311,7 @@ static u64 read_sum_exec_runtime(struct task_struct *t)
  * Accumulate raw cputime values of dead tasks (sig->[us]time) and live
  * tasks (sum on group iteration) belonging to @tsk's group.
  */
-void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
+void thread_cputime(struct task_struct *tsk, struct task_cputime *times)
 {
 	struct signal_struct *sig = tsk->signal;
 	u64 utime, stime;
@@ -327,7 +327,7 @@ void thread_group_cputime(struct task_struct *tsk, struct task_cputime *times)
 	 * those pending times and rely only on values updated on tick or
 	 * other scheduler action.
 	 */
-	if (same_thread_group(current, tsk))
+	if (same_thread(current, tsk))
 		(void) task_sched_runtime(current);
 
 	rcu_read_lock();
@@ -470,16 +470,16 @@ void task_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
 }
 EXPORT_SYMBOL_GPL(task_cputime_adjusted);
 
-void thread_group_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
+void thread_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
 {
 	struct task_cputime cputime;
 
-	thread_group_cputime(p, &cputime);
+	thread_cputime(p, &cputime);
 
 	*ut = cputime.utime;
 	*st = cputime.stime;
 }
-EXPORT_SYMBOL_GPL(thread_group_cputime_adjusted);
+EXPORT_SYMBOL_GPL(thread_cputime_adjusted);
 
 #else /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE: */
 
@@ -643,14 +643,14 @@ void task_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
 }
 EXPORT_SYMBOL_GPL(task_cputime_adjusted);
 
-void thread_group_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
+void thread_cputime_adjusted(struct task_struct *p, u64 *ut, u64 *st)
 {
 	struct task_cputime cputime;
 
-	thread_group_cputime(p, &cputime);
+	thread_cputime(p, &cputime);
 	cputime_adjust(&cputime, &p->signal->prev_cputime, ut, st);
 }
-EXPORT_SYMBOL_GPL(thread_group_cputime_adjusted);
+EXPORT_SYMBOL_GPL(thread_cputime_adjusted);
 
 #endif /* !CONFIG_VIRT_CPU_ACCOUNTING_NATIVE */
 
